@@ -7,7 +7,7 @@ class state_edit:
         self.arable_resource = list()
         self.capped_resource = dict()
         self.uncapped_resource = dict()
-        self.uncapped_resource2 = dict() #Discovered uncapped resource
+        self.uncapped_resource2 = dict() #Discovered Hidden resource
 
     def setArable(self, arable):
         self.arableland = arable
@@ -60,10 +60,10 @@ def EditInfoReader(path, edit_info):
             new_state.setCapRes(row[1].value, row[2].value)
             edit_info[row[0].value] = new_state
 
-    ws_uncap_res = wb_reader["Uncapped Resources"]
+    ws_uncap_res = wb_reader["Hidden Resources"]
     for row in ws_uncap_res.rows:
         if row[0].value == "STATE_CODE":
-            print("Uncapped Resources Started")
+            print("Hidden Resources Started")
         elif row[0].value in edit_info:
             edit_info[row[0].value].setUnCapRes(row[1].value, row[2].value, row[3].value)
         else:
@@ -71,10 +71,10 @@ def EditInfoReader(path, edit_info):
             new_state.setUnCapRes(row[1].value, row[2].value, row[3].value)
             edit_info[row[0].value] = new_state
 
-    ws_uncap_res2 = wb_reader["Uncapped Resources (Discovered)"]
+    ws_uncap_res2 = wb_reader["Hidden Resources (Discovered)"]
     for row in ws_uncap_res2.rows:
         if row[0].value == "STATE_CODE":
-            print("Uncapped and Discovered Resources Started")
+            print("Hidden and Discovered Resources Started")
         elif row[0].value in edit_info:
             edit_info[row[0].value].setUnCapRes2(row[1].value, row[2].value, row[3].value)
         else:
@@ -117,7 +117,7 @@ def Editor(state_edit_info):
                     raw_arr_res.append(arr_res_each)
 
             new_str = ' '.join(raw_arr_res)
-            new.writelines("    " + new_str + " }\n")
+            new.writelines(new_str + " }\n")
         elif len(capres) != 0 and "capped_resources" in raw_line:
             new.writelines(raw_line)
 
@@ -184,6 +184,8 @@ def Editor(state_edit_info):
                     if not unres[res][0] == 0:
                         new.writelines("    resource = {\n")
                         new.writelines("        type = \"" + res + "\"\n")
+                        if unres[res][2] is not None:
+                            new.writelines("        depleted_type = \"" + unres[res][2] + "\"\n")
                         new.writelines("        undiscovered_amount = " + str(unres[res][0]) + "\n")
                         new.writelines("    }\n")
                     unres[res][1] = True
@@ -196,6 +198,8 @@ def Editor(state_edit_info):
                     if not unres2[res][0] == 0:
                         new.writelines("    resource = {\n")
                         new.writelines("        type = \"" + res + "\"\n")
+                        if unres2[res][2] is not None:
+                            new.writelines("        depleted_type = \"" + unres2[res][2] + "\"\n")
                         new.writelines("        discovered_amount = " + str(unres2[res][0]) + "\n")
                         new.writelines("    }\n")
                     unres2[res][1] = True
