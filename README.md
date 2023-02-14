@@ -23,5 +23,8 @@ If you downloaded files withe executable version, then file consists of two exec
  * Do NOT change the name of text files in state_regions and raw_data
  * Follow CORRECTLY input.xlsx format.
  
+ # Known Issues
+  * Program do NOT run properly when you added capped resources in the state with no capped resouces originally.
+ 
  # pre-Installation via python
  This program used `openpyxl` library. You should download the libray before use python file. : `pip install openpyxl`
