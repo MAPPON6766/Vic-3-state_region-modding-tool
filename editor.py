@@ -194,7 +194,7 @@ def Editor(state_edit_info):
             mod_data_w.writelines("    resource = {\n")
             mod_data_w.writelines("        type = \"" + res + "\"\n")
             if dept_type is not None and dept_type != "":
-                mod_data_w.writelines("        depleted_types = \"")
+                mod_data_w.writelines("        depleted_type = \"")
                 mod_data_w.writelines(dept_type)
                 mod_data_w.writelines("\"\n")
             mod_data_w.writelines("        ")
