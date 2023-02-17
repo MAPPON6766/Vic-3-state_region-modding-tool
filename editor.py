@@ -178,7 +178,7 @@ def Editor(state_edit_info):
         if res != "" and res != "=" and res != "arable_resources" and res != "{" and res != "}" and res != "}\n":
             mod_data_w.writelines('"' + res + '" ')
     mod_data_w.writelines('}\n')
-    mod_data_w.writelines("    capped_resource = {\n")
+    mod_data_w.writelines("    capped_resources = {\n")
     for res in state_info_raw.capped_resource:
         amount = state_info_raw.capped_resource[res]
         if "\n" in amount: amount = amount.replace("\n", "")
