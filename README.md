@@ -12,7 +12,7 @@ If you downloaded files withe executable version, then file consists of two exec
     * `Arable Resources` : Write the state code and building group code(e.g. `bg_tea_plantations`). If the building group is arable in the state, it will be deleted. Vice versa, the building group unavailable in the state will become available.
     * `Capped Resources` : Write the state code, building group code and amount. If you want to eliminate the original resource, write 0 for the amount.
     * `Uncapped Resources` : Write the state code, building group code, amount, depleted types(Optional) and whether it is discovered at the start of game. If you want to eliminate the original resource, write 0 for the amount.
- 4. Run 'editor.exe`. This executable modifies the text files in `raw_data` folder based on `input.xlsx` and saves them in `modded_data`.
+ 4. Run `editor.exe`. This executable modifies the text files in `raw_data` folder based on `input.xlsx` and saves them in `modded_data`.
  5. Copy and paste text files in `modded_files` to `(your mod folder)\map_data\state_regions` folder.
  6. Run Victoria 3 and check the verification.
  
