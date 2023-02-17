@@ -6,8 +6,7 @@ class state_edit:
         self.arableland = 0
         self.arable_resource = list()
         self.capped_resource = dict()
-        self.uncapped_resource = dict()
-        self.uncapped_resource2 = dict() #Discovered Hidden resource
+        self.hidden_resource = dict()
 
     def setArable(self, arable):
         self.arableland = arable
@@ -18,11 +17,20 @@ class state_edit:
     def setCapRes(self, bg, size):
         self.capped_resource[bg] = size
 
-    def setUnCapRes(self, bg, size, dep = ""):
-        self.uncapped_resource[bg] = [size, False, dep]
+    def setHiddenRes(self, bg, size, dep = "", discvd = False):
+        self.hidden_resource[bg] = [size, dep, discvd]
 
-    def setUnCapRes2(self, bg, size, dep = ""):
-        self.uncapped_resource2[bg] = [size, False, dep]
+class state_info(state_edit):
+    def __init__(self, _statename):
+        super().__init__(_statename)
+        self.longstr_raw_data = []
+        self.naval_exit_id = -1
+
+    def appendStr(self, str):
+        self.longstr_raw_data.append(str)
+
+    def setNavalExit(self, id):
+        self.naval_exit_id = id
 
 def EditInfoReader(path, edit_info):
     wb_reader = load_workbook(path, data_only=True)
@@ -32,10 +40,10 @@ def EditInfoReader(path, edit_info):
         if row[0].value == "STATE_CODE":
             print("Arable Lands Started")
         elif row[0].value in edit_info:
-            edit_info[row[0].value].setArable(row[1].value)
-        else:
+            edit_info[row[0].value].setArable(str(row[1].value))
+        elif row[0].value is not None:
             new_state = state_edit(row[0].value)
-            new_state.setArable(row[1].value)
+            new_state.setArable(str(row[1].value))
             edit_info[row[0].value] = new_state
 
     ws_arr_res = wb_reader["Arable Resources"]
@@ -44,7 +52,7 @@ def EditInfoReader(path, edit_info):
             print("Arable Resources Started")
         elif row[0].value in edit_info:
             edit_info[row[0].value].setArrRes(row[1].value)
-        else:
+        elif row[0].value is not None:
             new_state = state_edit(row[0].value)
             new_state.setArrRes(row[1].value)
             edit_info[row[0].value] = new_state
@@ -54,10 +62,10 @@ def EditInfoReader(path, edit_info):
         if row[0].value == "STATE_CODE":
             print("Capped Resources Started")
         elif row[0].value in edit_info:
-            edit_info[row[0].value].setCapRes(row[1].value, row[2].value)
-        else:
+            edit_info[row[0].value].setCapRes(row[1].value, str(row[2].value))
+        elif row[0].value is not None:
             new_state = state_edit(row[0].value)
-            new_state.setCapRes(row[1].value, row[2].value)
+            new_state.setCapRes(row[1].value, str(row[2].value))
             edit_info[row[0].value] = new_state
 
     ws_uncap_res = wb_reader["Hidden Resources"]
@@ -65,158 +73,149 @@ def EditInfoReader(path, edit_info):
         if row[0].value == "STATE_CODE":
             print("Hidden Resources Started")
         elif row[0].value in edit_info:
-            edit_info[row[0].value].setUnCapRes(row[1].value, row[2].value, row[3].value)
-        else:
+            edit_info[row[0].value].setHiddenRes(row[1].value, str(row[2].value), row[3].value, row[4].value)
+        elif row[0].value is not None:
             new_state = state_edit(row[0].value)
-            new_state.setUnCapRes(row[1].value, row[2].value, row[3].value)
-            edit_info[row[0].value] = new_state
-
-    ws_uncap_res2 = wb_reader["Hidden Resources (Discovered)"]
-    for row in ws_uncap_res2.rows:
-        if row[0].value == "STATE_CODE":
-            print("Hidden and Discovered Resources Started")
-        elif row[0].value in edit_info:
-            edit_info[row[0].value].setUnCapRes2(row[1].value, row[2].value, row[3].value)
-        else:
-            new_state = state_edit(row[0].value)
-            new_state.setUnCapRes2(row[1].value, row[2].value, row[3].value)
+            new_state.setHiddenRes(row[1].value, str(row[2].value), row[3].value, row[4].value)
             edit_info[row[0].value] = new_state
 
 
 def Editor(state_edit_info):
-    # state_edit_info = state_edit("")
+    #state_edit_info = state_edit()
     state_name = state_edit_info.statename
+    raw_data_path = "raw_data/" + state_name + ".txt"
+    modded_data_path = "modded_data/" + state_name + ".txt"
+    state_info_raw = state_info(state_name)
 
-    raw = open("raw_data/" + state_name + ".txt", mode = 'r', encoding = 'utf-8-sig')
-    new = open("modded_data/" + state_name + ".txt", mode = 'w', encoding = 'utf-8-sig')
-    arr_lands = state_edit_info.arableland
-    arr_res = state_edit_info.arable_resource
-    capres = state_edit_info.capped_resource
-    unres = state_edit_info.uncapped_resource
-    unres2 = state_edit_info.uncapped_resource2
-    resource_editted_num = len(unres) + len(unres2)
+    raw_data_r = open(raw_data_path, mode='r', encoding='utf-8-sig')
+    mod_data_w = open(modded_data_path, mode = 'w', encoding= 'utf-8-sig')
 
     while(True):
-        raw_line = raw.readline()
+        r_line = raw_data_r.readline()
 
-        if not raw_line:
-            raw.close()
-            new.close()
+        if not r_line:
+            print(state_name + " Completed")
+            raw_data_r.close()
             break
-        elif arr_lands != 0 and "arable_land" in raw_line:
-            new_str = "    arable_land = " + str(arr_lands) + "\n"
-            new.writelines(new_str)
-        elif len(arr_res) != 0 and "arable_resources" in raw_line:
-            raw_arr_res = raw_line.split(' ')
-            raw_arr_res.pop()
-            for arr_res_each in arr_res:
-                arr_res_each = '"' + arr_res_each + '"'
-                if arr_res_each in raw_arr_res:
-                    raw_arr_res.remove(arr_res_each)
-                else:
-                    raw_arr_res.append(arr_res_each)
+        elif r_line.find("arable_land") != -1:
+            r_line = r_line.replace('\n', '')
+            r_line_s = r_line.split(' ')
+            state_info_raw.setArable(r_line_s[-1])
+        elif r_line.find("arable_resource") != -1:
+            r_line.replace('\n', '')
+            r_line.replace('\t', '')
+            r_line_s = r_line.split(' ')
+            for res in r_line_s:
+                if res != '' :
+                    res = res.strip('"')
+                    state_info_raw.setArrRes(res)
+        elif r_line.find("capped_resource") != -1:
+            while(True):
+                r_line2 = raw_data_r.readline()
 
-            new_str = ' '.join(raw_arr_res)
-            new.writelines(new_str + " }\n")
-        elif len(capres) != 0 and "capped_resources" in raw_line:
-            new.writelines(raw_line)
+                if r_line2.find('}') != -1:
+                    break
+                r_line2.replace('\n', '')
+                r_line2.replace('\t', '')
+                r_line2_s = r_line2.split(' ')
+                res_type = r_line2_s[-3]
+                res_amount = r_line2_s[-1]
+                state_info_raw.setCapRes(res_type, res_amount)
+        elif r_line.find("resource") != -1 and r_line.find("capped_resource") == -1:
+            discovered = True
+            res_type = ""
+            res_amount = 0
+            dep_type = ""
 
             while(True):
-                raw_line2 = raw.readline()
-                raw_line2s = raw_line2.split(' ')
-                while not '}' in raw_line2s and '' in raw_line2s:
-                    raw_line2s.remove('')
-                while not '}' in raw_line and '\t' in raw_line2s:
-                    raw_line2s.remove('\t')
+                r_line2 = raw_data_r.readline()
 
-                raw_line2_s = raw_line2s[0]
-                new_str = ""
-                if raw_line2_s in capres:
-                    if capres[raw_line2_s] != 0:
-                        new_str = "        " + raw_line2_s + " = " + str(capres[raw_line2_s]) + "\n"
-                else: new_str = raw_line2
-                new.writelines(new_str)
-
-                if "}" in raw_line2:
+                if r_line2.find('}') != -1:
+                    state_info_raw.setHiddenRes(res_type, res_amount, dep_type, discovered)
                     break
-        elif resource_editted_num != 0 and "resource = {" in raw_line and not("capped" in raw_line) and not("arable" in raw_line):
-            raw_line2 = raw.readline()
-            raw_line2s = raw_line2.split(' ')
-            while not '}' in raw_line2s and '' in raw_line2s:
-                raw_line2s.remove('')
-            while not '}' in raw_line and '\t' in raw_line2s:
-                raw_line2s.remove('\t')
+                elif r_line2.find('type') != -1:
+                    r_line2 = r_line2.replace('\n', '')
+                    r_line2 = r_line2.replace('\t', '')
+                    r_line2_s = r_line2.split(' ')
+                    res_type = r_line2_s[-1].strip('"')
+                elif r_line2.find('discovered') != -1:
+                    r_line2 = r_line2.replace('\n', '')
+                    r_line2 = r_line2.replace('\t', '')
+                    r_line2_s = r_line2.split(' ')
+                    res_amount = r_line2_s[-1].strip('"')
+                    if r_line2.find('undiscovered') != -1: discovered = False
+                elif r_line2.find('depleted_type') != -1:
+                    r_line2 = r_line2.replace('\n', '')
+                    r_line2 = r_line2.replace('\t', '')
+                    r_line2_s = r_line2.split(' ')
+                    dep_type = r_line2_s[-1].strip('"')
+        elif r_line.find("naval_exit_id") != -1:
+            r_line = r_line.replace('\n', '')
+            r_line_s = r_line.split(' ')
+            state_info_raw.setNavalExit(r_line_s[-1])
+        elif r_line != "}\n":
+            state_info_raw.appendStr(r_line)
 
-            raw_line2s[2] = raw_line2s[2].replace('\n', '')
-            raw_line2_s = raw_line2s[2][1:-1]
-            if raw_line2_s in unres:
-                if unres[raw_line2_s][0] != 0:
-                    new.writelines(raw_line)
-                    new.writelines("        type = \"" + raw_line2_s + "\"\n")
-                    if unres[raw_line2_s][2] is not None:
-                        new.writelines("        depleted_type = \"" + unres[raw_line2_s][2] + "\"\n")
-                    new.writelines("        undiscovered_amount = " + str(unres[raw_line2_s][0]) + "\n")
-                    new.writelines("    }\n")
-                while not "}" in raw_line2:
-                    raw_line2 = raw.readline()
-                resource_editted_num = resource_editted_num - 1
-                unres[raw_line2_s][1] = True
-            elif raw_line2_s in unres2:
-                if unres2[raw_line2_s][0] != 0:
-                    new.writelines(raw_line)
-                    new.writelines("        type = \"" + raw_line2_s + "\"\n")
-                    if unres2[raw_line2_s][2] is not None:
-                        new.writelines("        depleted_type = \"" + unres2[raw_line2_s][2] + "\"\n")
-                    new.writelines("        discovered_amount = " + str(unres2[raw_line2_s][0]) + "\n")
-                    new.writelines("    }\n")
-                while not "}" in raw_line2:
-                    raw_line2 = raw.readline()
-                resource_editted_num = resource_editted_num - 1
-                unres2[raw_line2_s][1] = True
+    mod_data_w.writelines(''.join(state_info_raw.longstr_raw_data))
+    if state_edit_info.arableland != 0:
+        state_info_raw.setArable(state_edit_info.arableland)
+    if len(state_edit_info.arable_resource) != 0:
+        for res in state_edit_info.arable_resource:
+            if res not in state_info_raw.arable_resource:
+                state_info_raw.setArrRes(res)
             else:
-                new.writelines(raw_line2)
-                while "}" in raw_line2:
-                    raw_line2 = raw.readline()
-                    new.writelines(raw_line2)
-        elif "naval_exit_id" in raw_line and resource_editted_num != 0:
-            for res in unres:
-                if not unres[res][1]:
-                    if not unres[res][0] == 0:
-                        new.writelines("    resource = {\n")
-                        new.writelines("        type = \"" + res + "\"\n")
-                        if unres[res][2] is not None:
-                            new.writelines("        depleted_type = \"" + unres[res][2] + "\"\n")
-                        new.writelines("        undiscovered_amount = " + str(unres[res][0]) + "\n")
-                        new.writelines("    }\n")
-                    unres[res][1] = True
-                    resource_editted_num = resource_editted_num - 1
-                if resource_editted_num == 0:
-                    break
+                state_info_raw.arable_resource.remove(res)
+    if len(state_edit_info.capped_resource) != 0:
+        for res in state_edit_info.capped_resource:
+            state_info_raw.capped_resource[res] = state_edit_info.capped_resource[res]
+    if len(state_edit_info.hidden_resource) != 0:
+        for res in state_edit_info.hidden_resource:
+            state_info_raw.hidden_resource[res] = state_edit_info.hidden_resource[res]
 
-            for res in unres2:
-                if not unres2[res][1]:
-                    if not unres2[res][0] == 0:
-                        new.writelines("    resource = {\n")
-                        new.writelines("        type = \"" + res + "\"\n")
-                        if unres2[res][2] is not None:
-                            new.writelines("        depleted_type = \"" + unres2[res][2] + "\"\n")
-                        new.writelines("        discovered_amount = " + str(unres2[res][0]) + "\n")
-                        new.writelines("    }\n")
-                    unres2[res][1] = True
-                    resource_editted_num = resource_editted_num - 1
-                if resource_editted_num == 0:
-                    break
-            new.writelines(raw_line)
-        else:
-            new.writelines(raw_line)
+    mod_data_w.writelines("    arable_land = " + state_info_raw.arableland + "\n")
+    mod_data_w.writelines("    arable_resources = { ")
+    for res in state_info_raw.arable_resource:
+        if res != "" and res != "=" and res != "arable_resources" and res != "{" and res != "}" and res != "}\n":
+            mod_data_w.writelines('"' + res + '" ')
+    mod_data_w.writelines('}\n')
+    mod_data_w.writelines("    capped_resource = {\n")
+    for res in state_info_raw.capped_resource:
+        amount = state_info_raw.capped_resource[res]
+        if "\n" in amount: amount = amount.replace("\n", "")
+        if amount != "0":
+            mod_data_w.writelines("        " + res + " = " + amount + "\n")
+    mod_data_w.writelines("    }\n")
+    for res in state_info_raw.hidden_resource:
+        amount = state_info_raw.hidden_resource[res][0]
+        dept_type = state_info_raw.hidden_resource[res][1]
+        discvd = state_info_raw.hidden_resource[res][2]
 
-
+        if amount != "0":
+            mod_data_w.writelines("    resource = {\n")
+            mod_data_w.writelines("        type = \"" + res + "\"\n")
+            if dept_type is not None and dept_type != "":
+                mod_data_w.writelines("        depleted_types = \"")
+                mod_data_w.writelines(dept_type)
+                mod_data_w.writelines("\"\n")
+            mod_data_w.writelines("        ")
+            if not discvd:
+                mod_data_w.writelines("un")
+            mod_data_w.writelines("discovered_amount = ")
+            mod_data_w.writelines(amount)
+            mod_data_w.writelines("\n")
+            mod_data_w.writelines("    }\n")
+    if state_info_raw.naval_exit_id != -1:
+        mod_data_w.writelines("    naval_exit_id = ")
+        mod_data_w.writelines(str(state_info_raw.naval_exit_id))
+        mod_data_w.writelines("\n")
+    mod_data_w.writelines("}")
+    mod_data_w.close()
 # Main
 input_path = "input.xlsx"
 fail_path = "error.txt"
 editinfo = dict()
 EditInfoReader(input_path, editinfo)
-print("데이터 읽기 완료")
+print("Input Data Reading Completed")
 
 for state in editinfo:
     Editor(editinfo[state])
